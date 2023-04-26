@@ -1,0 +1,45 @@
+version: '3'
+
+services: 
+
+  proxy-reverso:
+    build:
+      context: nginx-proxy-reverso
+    container_name: proxy-reverso
+    image: b0bd3v/nginx-proxy-reverso:prod
+    ports: 
+      - "8080:80"
+    networks: 
+      - node-nginx
+
+  app:
+    build: 
+      context: node
+    container_name: app
+    entrypoint: wait-for db:3306 -t 40 -- './start' 
+    networks: 
+      - node-nginx
+    tty: true
+    ports: 
+      - "3000:3000"
+    depends_on: 
+       - db
+
+  db:
+    image: mysql:5.7
+    command: --innodb-use-native-aio=0
+    container_name: db
+    restart: always
+    tty: true
+    # Optei por não usar o volume. Por achar que talvez nao seja relevante para o teste.
+    environment: 
+      - MYSQL_DATABASE=nodedb
+      - MYSQL_ROOT_PASSWORD=root
+    networks: 
+      - node-nginx
+
+    
+
+networks: 
+  node-nginx:
+    driver: bridge      
